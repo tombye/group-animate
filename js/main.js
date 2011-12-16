@@ -12,7 +12,6 @@
 			// set a step callback to beacon a custom event
 			opts.step = function (now, fx) {
 				$(document).trigger(evtName, {
-						'now' : now,
 						'fx' : fx
 					}
 				);
@@ -25,15 +24,28 @@
 
 (function () {
 	var a,
-	    b = 100,
-	    $elms = [],
+	    b = 20,
+	    rings = [],
+	    numOfRings = 10,
+	    vectors = [],
 	    getPosition,
 	    angle,
 	    range,
 	    dist = 480,
-	    progress;
+	    progress,
+		getVector,
+		getPositionFromVector;
 
-	var getPosition = function (angle, radius) {
+	/**
+	 * Private function to get the points of a vector from its angle and length
+	 *
+	 * @function
+	 * @private
+	 * @param {Float} angle The angle of the vector
+	 * @param {Float} length The length of the vector
+	 * @returns {Object} The x,y co-ordinates of the vector
+	*/
+	getVector = function (angle, length) {
 		var circ,
 		    percent,
 		    dist,
@@ -41,63 +53,107 @@
 		    opp,
 		    adj;
 
-		circ = 2 * Math.PI * radius;
+		circ = 2 * Math.PI * length;
                 percent = angle / 360;
                 dist = circ * percent;
-                radians = dist / radius;
+                radians = dist / length;
 
-                opp = Math.sin(radians) * radius;
-                adj = Math.cos(radians) * radius;
+                opp = Math.sin(radians) * length;
+                adj = Math.cos(radians) * length;
 
 	        return {
-	       		 'x' : opp,
-                         'y' : adj
+				'x' : opp,
+                'y' : adj
 		};
 	};
+	
+	/**
+	 * Private function to move a point along a vector
+	 *
+	 * @function
+	 * @private
+	 * @param {Object} point The x,y of the point to translate
+	 * @param {Float} multiplier The value to translate the vector by
+	 * @returns {Object} The new x,y co-ordinates of the point
+	*/
+	translateByVector = function (point, multiplier) {
+		var result = {
+			x : point.x * multiplier,
+			y : point.y * multiplier
+		};
+		
+		return result;
+	};
+	
+	/**
+	 * Private function to make a function to run every frame of animating an expanding ring of elements
+	 *
+	 * @function
+	 * @private
+	 * @param {Float} radius The final size to animate the ring to (as a percent of the largest size)
+	 * @param {Array} elms Array of elements to animate as part of the ring
+	 * @returns {Function} The function to run every frame
+	*/
+	generateFrameForRing = function (radiusScale, elms) {
+		var finalPositions = [],
+			a = vectors.length;
+		
+		while (a--) {
+			finalPositions[a] = translateByVector(vectors[a], radiusScale)
+		}
+		
+		return function (e, info) {
+			var top,
+			    left,
+			    a = elms.length,
+			    pos = info.fx.pos;
+				
+			while(a--) {
+				top = (finalPositions[a].y * pos);
+				left = (finalPositions[a].x * pos);
 
-	// let's make some coloured elements
-	for (a = 0; a < b; a++) {
-		$elms.push($('<div class="node"></div>'));
-		$elms[a].css('background-color', 'rgb(' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ')');
-		$('#canvas').append($elms[a]);
-	}
+				elms[a].$elm.css({
+					'top' : top + 'px',
+					'left' : left + 'px'
+				})
+			}
+		}
+	};
+	
+	/**
+	 * Private function to make a ring of elements
+	 *
+	 * @function
+	 * @private
+	*/ 
+	makeRing = function () {
+		var a, 
+		    idx = (rings.length);
 
+		rings.push([]);
+
+		// let's make some coloured elements
+		for (a = 0; a < b; a++) {
+			rings[idx].push({ '$elm' : $('<div class="node"></div>')});
+			rings[idx][a].$elm.css('background-color', 'rgb(' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ')');
+			$('#canvas').append(rings[idx][a].$elm);
+		}
+	};
+	
 	// set the range of degrees our elements will spread out to fill 
 	range = 90;
 	
-	$(document).bind('frame', function (e, info) {
-		var vector;
+	for (a = 0; a < b; a++) {
+		// angle is bound to each element by it's index
+		angle = ((range / (b - 1)) * a);
+		vectors.push(getVector(angle, dist));
+	}
 
-		// don't do anything if the animation hasn't progressed
-		if (info.now === 0) { return; }
+	for (a = 0; a < numOfRings; a++) {
+		makeRing(a);
+		$(document).bind('frame', generateFrameForRing((1 / (a + 1)), rings[a]));
+	}
+	
 
-		/*
-		 * each ring of elements progresses to a percentage of the final distance except the last one
-		 * so ring 1 = (info.now / 5) * 1 for 20%
-		 * so ring 2 = (info.now / 5) * 2 for 40%
-		 *
-		 * also need to set up the rings as arrays of $elm arrays
-		*/ 
-		while (a) {
-			a--;
-			// angle is bound to each element by it's index
-			angle = ((range / (b - 1)) * a);
-			// progress is distance along the radius
-			progress = (dist / 100) * info.now;
-			// if progress is 0, only move along the x axis
-			if (progress === 0) {
-				vector = { 'x' : dist, 'y' : 0 };
-			}
-			// get vector based on angle and progres along radius
-			vector = getPosition(angle, progress);
-			// turn this to CSS position
-			$elms[a].css({
-				'top' : vector.y + 'px',
-				'left' : vector.x + 'px'
-			});
-		}
-		a = b;
-	});
-
-	$.groupAnimate('frame', {'duration' : 1000})
+	$.groupAnimate('frame', {'duration' : 1000});
 }());
