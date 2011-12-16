@@ -24,7 +24,7 @@
 
 (function () {
 	var a,
-	    b = 20,
+	    b = 50,
 	    rings = [],
 	    numOfRings = 10,
 	    vectors = [],
@@ -32,6 +32,8 @@
 	    angle,
 	    range,
 	    dist = 480,
+	    offsetTop = 250,
+	    offsetLeft = 508,
 	    progress,
 		getVector,
 		getPositionFromVector;
@@ -113,8 +115,8 @@
 				left = (finalPositions[a].x * pos);
 
 				elms[a].$elm.css({
-					'top' : top + 'px',
-					'left' : left + 'px'
+					'top' : top + offsetTop + 'px',
+					'left' : left + offsetLeft + 'px'
 				})
 			}
 		}
@@ -141,7 +143,7 @@
 	};
 	
 	// set the range of degrees our elements will spread out to fill 
-	range = 90;
+	range = 360;
 	
 	for (a = 0; a < b; a++) {
 		// angle is bound to each element by it's index
