@@ -24,10 +24,10 @@
 
 (function () {
 	var a,
-	    b = 50,
-	    elms = [],
-		rings = [],
-		vectors = [],
+	    b = 20,
+	    rings = [],
+	    numOfRings = 10,
+	    vectors = [],
 	    getPosition,
 	    angle,
 	    range,
@@ -77,10 +77,12 @@
 	 * @returns {Object} The new x,y co-ordinates of the point
 	*/
 	translateByVector = function (point, multiplier) {
-		point.x = point.x * multiplier;
-		point.y = point.y * multiplier;
+		var result = {
+			x : point.x * multiplier,
+			y : point.y * multiplier
+		};
 		
-		return point;
+		return result;
 	};
 	
 	/**
@@ -102,14 +104,14 @@
 		
 		return function (e, info) {
 			var top,
-				left,
-				a = elms.length,
-				pos = info.fx.pos;
+			    left,
+			    a = elms.length,
+			    pos = info.fx.pos;
 				
 			while(a--) {
 				top = (finalPositions[a].y * pos);
 				left = (finalPositions[a].x * pos);
-				
+
 				elms[a].$elm.css({
 					'top' : top + 'px',
 					'left' : left + 'px'
@@ -117,24 +119,26 @@
 			}
 		}
 	};
-
-	rings.push([]);
-
-	// let's make some coloured elements
-	for (a = 0; a < b; a++) {
-		rings[0].push({ '$elm' : $('<div class="node"></div>')});
-		rings[0][a].$elm.css('background-color', 'rgb(' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ')');
-		$('#canvas').append(rings[0][a].$elm);
-	}
 	
-	rings.push([]);
-	
-	// let's make some coloured elements
-	for (a = 0; a < b; a++) {
-		rings[1].push({ '$elm' : $('<div class="node"></div>')});
-		rings[1][a].$elm.css('background-color', 'rgb(' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ')');
-		$('#canvas').append(rings[1][a].$elm);
-	}
+	/**
+	 * Private function to make a ring of elements
+	 *
+	 * @function
+	 * @private
+	*/ 
+	makeRing = function () {
+		var a, 
+		    idx = (rings.length);
+
+		rings.push([]);
+
+		// let's make some coloured elements
+		for (a = 0; a < b; a++) {
+			rings[idx].push({ '$elm' : $('<div class="node"></div>')});
+			rings[idx][a].$elm.css('background-color', 'rgb(' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ', ' + (Math.floor(Math.random() * 256)) + ')');
+			$('#canvas').append(rings[idx][a].$elm);
+		}
+	};
 	
 	// set the range of degrees our elements will spread out to fill 
 	range = 90;
@@ -144,9 +148,12 @@
 		angle = ((range / (b - 1)) * a);
 		vectors.push(getVector(angle, dist));
 	}
+
+	for (a = 0; a < numOfRings; a++) {
+		makeRing(a);
+		$(document).bind('frame', generateFrameForRing((1 / (a + 1)), rings[a]));
+	}
 	
-	$(document).bind('frame', generateFrameForRing(1, rings[0]));
-	$(document).bind('frame', generateFrameForRing(0.8, rings[1]));
 
 	$.groupAnimate('frame', {'duration' : 1000});
 }());
