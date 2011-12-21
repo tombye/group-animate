@@ -153,9 +153,10 @@
 
 	for (a = 0; a < numOfRings; a++) {
 		makeRing(a);
+		// each step of the animation, draw a ring of divs
 		$(document).bind('frame', generateFrameForRing((1 / (a + 1)), rings[a]));
 	}
 	
-
+	// the event you can bind to is called 'frame'
 	$.groupAnimate('frame', {'duration' : 1000});
 }());
